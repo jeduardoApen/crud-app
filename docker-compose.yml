@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Tu contenedor PHP actual
+  mi-web:
+    image: php:8.3-apache
+    container_name: mi-web
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    entrypoint: >
+      sh -c "docker-php-ext-install mysqli pdo pdo_mysql && apache2-foreground"
+    depends_on:
+      - mi-mysql
+
+  # Tu MySQL Principal (Maestro)
+  mi-mysql:
+    image: ubuntu/mysql:latest
+    container_name: mi-mysql
+    command: 
+      - --server-id=1 
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+    environment:
+      MYSQL_ROOT_PASSWORD: 'tu_contraseña'  # Pon la contraseña que ya usas
+    ports:
+       - "3307:3306"
+    volumes:
+      - db_master_data:/var/lib/mysql
+
+  # El NUEVO: Contenedor de Respaldo (Esclavo)
+  mi-mysql-respaldo:
+    image: ubuntu/mysql:latest
+    container_name: mi-mysql-respaldo
+    command: 
+      - --server-id=2
+    environment:
+      MYSQL_ROOT_PASSWORD: 'tu_contraseña'  # Usa la misma que el principal
+    depends_on:
+      - mi-mysql
+    volumes:
+      - db_slave_data:/var/lib/mysql
+
+volumes:
+  db_master_data:
+  db_slave_data:
